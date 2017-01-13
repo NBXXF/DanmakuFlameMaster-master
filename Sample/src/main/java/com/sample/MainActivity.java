@@ -10,17 +10,18 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.os.Environment;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ImageSpan;
 import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.PopupWindow;
 import android.widget.VideoView;
 
@@ -150,6 +151,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
+
+    private EditText et_barrage;
+    private Button bt_barrage;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -184,6 +189,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void findViews() {
+        et_barrage = (EditText) findViewById(R.id.et_barrage);
+        bt_barrage = (Button) findViewById(R.id.bt_barrage);
+        bt_barrage.setOnClickListener(this);
 
         mMediaController = findViewById(R.id.media_controller);
         mBtnRotate = (Button) findViewById(R.id.rotate);
@@ -218,7 +226,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         mDanmakuView = (IDanmakuView) findViewById(R.id.sv_danmaku);
         mContext = DanmakuContext.create();
-        mContext.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_STROKEN, 3).setDuplicateMergingEnabled(false).setScrollSpeedFactor(1.2f).setScaleTextSize(1.2f)
+        mContext.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_STROKEN, 3)
+                .setDuplicateMergingEnabled(false)
+                .setScrollSpeedFactor(2.2f)//弹幕滚动速度
+                .setScaleTextSize(1.2f)
                 .setCacheStuffer(new SpannedCacheStuffer(), mCacheStufferAdapter) // 图文混排使用SpannedCacheStuffer
 //        .setCacheStuffer(new BackgroundCacheStuffer())  // 绘制背景使用BackgroundCacheStuffer
                 .setMaximumLines(maxLinesPair)
@@ -276,7 +287,12 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     mediaPlayer.start();
                 }
             });
-            mVideoView.setVideoPath(Environment.getExternalStorageDirectory() + "/1.flv");
+
+            String url = "http://tester.tcmmooc.com/hls/32/playlist/mWCIOfTbzdPGqsBkFNYhocEIf3Z36I6u.m3u8?hideBeginning=1";
+            url = "http://clips.vorwaerts-gmbh.de/big_buck_bunny.mp4";
+            url = "http://tester.tcmmooc.com/files/tmp/t.mp4";
+            mVideoView.setVideoPath(url);
+            // mVideoView.setVideoPath(Environment.getExternalStorageDirectory() + "/1.flv");
         }
 
     }
@@ -352,11 +368,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (b == null || !b) {
                 mBtnSendDanmakus.setText(R.string.cancel_sending_danmakus);
                 timer = new Timer();
-                timer.schedule(new AsyncAddTask(), 0, 1000);
+                timer.schedule(new AsyncAddTask(), 0, 10_000);
                 mBtnSendDanmakus.setTag(true);
             } else {
                 mBtnSendDanmakus.setText(R.string.send_danmakus);
                 mBtnSendDanmakus.setTag(false);
+            }
+        } else if (v == bt_barrage) {//发送文字弹幕
+            if (!TextUtils.isEmpty(et_barrage.getText())) {
+                addTextDanmaku(false, et_barrage.getText());
+                et_barrage.setText("");
             }
         }
     }
@@ -367,23 +388,23 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         @Override
         public void run() {
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 2; i++) {
                 addDanmaku(true);
                 SystemClock.sleep(20);
             }
         }
     }
 
-    ;
-
     private void addDanmaku(boolean islive) {
+        addTextDanmaku(islive, "这是一条弹幕" + System.nanoTime());
+    }
+
+    private void addTextDanmaku(boolean islive, CharSequence content) {
         BaseDanmaku danmaku = mContext.mDanmakuFactory.createDanmaku(BaseDanmaku.TYPE_SCROLL_RL);
         if (danmaku == null || mDanmakuView == null) {
             return;
         }
-        // for(int i=0;i<100;i++){
-        // }
-        danmaku.text = "这是一条弹幕" + System.nanoTime();
+        danmaku.text = content;
         danmaku.padding = 5;
         danmaku.priority = 0;  // 可能会被各种过滤器过滤并隐藏显示
         danmaku.isLive = islive;
